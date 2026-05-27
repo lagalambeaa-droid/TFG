@@ -83,6 +83,7 @@ export default function CambiarContrasenaObligatoriaScreen() {
             secureTextEntry
             placeholder="Min. 8 car., mayús., minús., núm. y especial"
             value={contrasena}
+            returnKeyType="done"
             onChangeText={setContrasena}
           />
 
@@ -92,6 +93,7 @@ export default function CambiarContrasenaObligatoriaScreen() {
             secureTextEntry
             placeholder="Repite la nueva contraseña"
             value={confirmar}
+            returnKeyType="done"
             onChangeText={setConfirmar}
           />
 

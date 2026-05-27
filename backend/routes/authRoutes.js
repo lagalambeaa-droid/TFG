@@ -8,6 +8,7 @@ const {
   registroEmpleado,
   actualizarPerfil,
   cambiarContrasena,
+  resetPasswordByCapataz,
 } = require("../controllers/authController");
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
@@ -66,6 +67,13 @@ router.put(
   authMiddleware,
   roleMiddleware(["capataz", "empleado", "cliente"]),
   cambiarContrasena
+);
+
+router.put(
+  "/reset-password/:id",
+  authMiddleware,
+  roleMiddleware(["capataz"]),
+  resetPasswordByCapataz
 );
 
 module.exports = router;

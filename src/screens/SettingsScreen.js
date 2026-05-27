@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -11,8 +11,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
-import { changePassword, updateProfile } from "../services/userService";
+import { changePassword, getUsers, resetUserPassword, updateProfile } from "../services/userService";
 import theme from "../theme";
 
 const validatePassword = (pwd) => {
@@ -42,6 +43,12 @@ export default function SettingsScreen() {
   });
   const [savingPassword, setSavingPassword] = useState(false);
 
+  const [allUsers, setAllUsers] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [resetPwd, setResetPwd] = useState("");
+  const [resetConfirm, setResetConfirm] = useState("");
+  const [resettingPassword, setResettingPassword] = useState(false);
+
   useEffect(() => {
     if (session.user) {
       setProfile({
@@ -52,6 +59,21 @@ export default function SettingsScreen() {
       });
     }
   }, [session.user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (session.role === "capataz") {
+        getUsers()
+          .then((data) => {
+            const filtered = (Array.isArray(data) ? data : []).filter(
+              (u) => u._id !== session.user?.id && (u.rol === "cliente" || u.rol === "empleado")
+            );
+            setAllUsers(filtered);
+          })
+          .catch(() => {});
+      }
+    }, [session.role, session.user?.id])
+  );
 
   const handleUpdateProfile = async () => {
     if (!profile.nombre.trim()) {
@@ -112,6 +134,47 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!selectedUserId) {
+      Alert.alert("Error", "Selecciona un usuario.");
+      return;
+    }
+    if (!resetPwd) {
+      Alert.alert("Error", "Introduce la nueva contraseña.");
+      return;
+    }
+    const pwdError = validatePassword(resetPwd);
+    if (pwdError) {
+      Alert.alert("Contraseña no válida", pwdError);
+      return;
+    }
+    if (resetPwd !== resetConfirm) {
+      Alert.alert("Error", "Las contraseñas no coinciden.");
+      return;
+    }
+
+    const user = allUsers.find((u) => u._id === selectedUserId);
+
+    try {
+      setResettingPassword(true);
+      await resetUserPassword(selectedUserId, resetPwd);
+      Alert.alert(
+        "Contraseña restablecida",
+        `La contraseña de ${user?.nombre || "usuario"} se ha cambiado.\nDebera cambiarla en su proximo inicio de sesion.`
+      );
+      setResetPwd("");
+      setResetConfirm("");
+      setSelectedUserId(null);
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        error?.response?.data?.message || "No se pudo restablecer la contraseña."
+      );
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
   const handleLogout = () => {
     Alert.alert("Cerrar sesion", "Se cerrara la sesion actual.", [
       { text: "Cancelar", style: "cancel" },
@@ -128,7 +191,7 @@ export default function SettingsScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <View style={styles.header}>
           <Text style={styles.title}>Ajustes</Text>
           <Text style={styles.subtitle}>
@@ -163,6 +226,7 @@ export default function SettingsScreen() {
             <TextInput
               style={styles.input}
               value={profile.nombre}
+              returnKeyType="done"
               onChangeText={(v) =>
                 setProfile((c) => ({ ...c, nombre: v }))
               }
@@ -178,6 +242,7 @@ export default function SettingsScreen() {
               keyboardType="phone-pad"
               placeholder="Ej: 612345678"
               value={profile.telefono}
+              returnKeyType="done"
               onChangeText={(v) =>
                 setProfile((c) => ({ ...c, telefono: v }))
               }
@@ -192,6 +257,7 @@ export default function SettingsScreen() {
               style={styles.input}
               placeholder="Ej: Calle Mayor 1, Madrid"
               value={profile.direccion}
+              returnKeyType="done"
               onChangeText={(v) =>
                 setProfile((c) => ({ ...c, direccion: v }))
               }
@@ -208,6 +274,7 @@ export default function SettingsScreen() {
                   style={styles.input}
                   placeholder="Ej: Electricista"
                   value={profile.especialidad}
+                  returnKeyType="done"
                   onChangeText={(v) =>
                     setProfile((c) => ({ ...c, especialidad: v }))
                   }
@@ -240,6 +307,7 @@ export default function SettingsScreen() {
             secureTextEntry
             placeholder="Introduce tu contraseña actual"
             value={passwords.contrasena_actual}
+            returnKeyType="done"
             onChangeText={(v) =>
               setPasswords((c) => ({ ...c, contrasena_actual: v }))
             }
@@ -251,6 +319,7 @@ export default function SettingsScreen() {
             secureTextEntry
             placeholder="Min. 8 car., mayus., minus., num. y especial"
             value={passwords.contrasena_nueva}
+            returnKeyType="done"
             onChangeText={(v) =>
               setPasswords((c) => ({ ...c, contrasena_nueva: v }))
             }
@@ -262,6 +331,7 @@ export default function SettingsScreen() {
             secureTextEntry
             placeholder="Repite la nueva contraseña"
             value={passwords.confirmar}
+            returnKeyType="done"
             onChangeText={(v) =>
               setPasswords((c) => ({ ...c, confirmar: v }))
             }
@@ -279,6 +349,81 @@ export default function SettingsScreen() {
             )}
           </TouchableOpacity>
         </View>
+
+        {session.role === "capataz" && (
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Restablecer contraseña de usuario</Text>
+            <Text style={styles.resetHint}>
+              Selecciona un usuario y asigna una nueva contraseña. El usuario debera cambiarla en su proximo inicio de sesion.
+            </Text>
+
+            {allUsers.length > 0 ? (
+              <View style={styles.chipRow}>
+                {allUsers.map((u) => (
+                  <TouchableOpacity
+                    key={u._id}
+                    style={[
+                      styles.userChip,
+                      selectedUserId === u._id && styles.userChipSelected,
+                    ]}
+                    onPress={() => setSelectedUserId(u._id)}
+                  >
+                    <Text
+                      style={[
+                        styles.userChipText,
+                        selectedUserId === u._id && styles.userChipTextSelected,
+                      ]}
+                    >
+                      {u.nombre}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.userChipRole,
+                        selectedUserId === u._id && styles.userChipRoleSelected,
+                      ]}
+                    >
+                      {u.rol}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.noUsersText}>No hay usuarios disponibles.</Text>
+            )}
+
+            <Text style={styles.fieldLabel}>Nueva contraseña</Text>
+            <TextInput
+              style={styles.input}
+              secureTextEntry
+              placeholder="Min. 8 car., mayus., minus., num. y especial"
+              value={resetPwd}
+              returnKeyType="done"
+              onChangeText={setResetPwd}
+            />
+
+            <Text style={styles.fieldLabel}>Confirmar contraseña</Text>
+            <TextInput
+              style={styles.input}
+              secureTextEntry
+              placeholder="Repite la nueva contraseña"
+              value={resetConfirm}
+              returnKeyType="done"
+              onChangeText={setResetConfirm}
+            />
+
+            <TouchableOpacity
+              style={[styles.resetButton, resettingPassword && styles.buttonDisabled]}
+              onPress={handleResetPassword}
+              disabled={resettingPassword}
+            >
+              {resettingPassword ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.resetButtonText}>Restablecer contraseña</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutButtonText}>Cerrar sesion</Text>
@@ -446,6 +591,68 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.7,
+  },
+  resetHint: {
+    color: "#6B7280",
+    fontSize: 13,
+    fontFamily: theme.typography.regular,
+    marginBottom: 14,
+    lineHeight: 20,
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+  userChip: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    backgroundColor: "#F8FAFC",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  userChipSelected: {
+    backgroundColor: "#1E3A8A",
+    borderColor: "#1E3A8A",
+  },
+  userChipText: {
+    color: "#334155",
+    fontFamily: theme.typography.medium,
+    fontSize: 14,
+  },
+  userChipTextSelected: {
+    color: "#FFFFFF",
+  },
+  userChipRole: {
+    color: "#9CA3AF",
+    fontFamily: theme.typography.regular,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  userChipRoleSelected: {
+    color: "#BFDBFE",
+  },
+  noUsersText: {
+    color: "#9CA3AF",
+    fontFamily: theme.typography.regular,
+    fontSize: 14,
+    marginBottom: 14,
+  },
+  resetButton: {
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: "#B45309",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  resetButtonText: {
+    color: "#FFFFFF",
+    fontFamily: theme.typography.medium,
+    fontWeight: "600",
+    fontSize: 15,
   },
   logoutButton: {
     minHeight: 48,

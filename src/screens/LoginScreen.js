@@ -83,6 +83,7 @@ export default function LoginScreen({ navigation }) {
               autoCapitalize="none"
               autoCorrect={false}
               value={form.email}
+              returnKeyType="done"
               onChangeText={(value) => updateField("email", value)}
               style={styles.input}
             />
@@ -92,6 +93,7 @@ export default function LoginScreen({ navigation }) {
               placeholder="••••••••"
               secureTextEntry
               value={form.contrasena}
+              returnKeyType="done"
               onChangeText={(value) => updateField("contrasena", value)}
               style={styles.input}
             />

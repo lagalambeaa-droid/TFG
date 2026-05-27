@@ -49,6 +49,11 @@ export const changePassword = async ({ contrasena_actual, contrasena_nueva }) =>
   return response.data;
 };
 
+export const resetUserPassword = async (userId, contrasena_nueva) => {
+  const response = await api.put(`/auth/reset-password/${userId}`, { contrasena_nueva });
+  return response.data;
+};
+
 export const getCachedUsers = async (rol) => {
   try {
     const raw = await AsyncStorage.getItem(getUsersCacheKey(rol));

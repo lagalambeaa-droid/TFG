@@ -340,6 +340,7 @@ export default function MaterialesScreen() {
             keyboardType="numeric"
             placeholder="0"
             value={quantities[item._id] || ""}
+            returnKeyType="done"
             onChangeText={(value) => updateQuantity(item._id, value, setQuantities)}
           />
           <TouchableOpacity
@@ -360,6 +361,7 @@ export default function MaterialesScreen() {
               keyboardType="numeric"
               placeholder="0"
               value={restockValues[item._id] || ""}
+              returnKeyType="done"
               onChangeText={(value) =>
                 updateQuantity(item._id, value, setRestockValues)
               }
@@ -436,6 +438,7 @@ export default function MaterialesScreen() {
               style={styles.input}
               placeholder="Concepto"
               value={newMaterial.concepto}
+              returnKeyType="done"
               onChangeText={(value) =>
                 setNewMaterial((current) => ({ ...current, concepto: value }))
               }
@@ -445,6 +448,7 @@ export default function MaterialesScreen() {
               placeholder="Cantidad inicial"
               keyboardType="numeric"
               value={newMaterial.cantidad}
+              returnKeyType="done"
               onChangeText={(value) =>
                 setNewMaterial((current) => ({
                   ...current,
@@ -457,6 +461,7 @@ export default function MaterialesScreen() {
               placeholder="Precio unitario"
               keyboardType="decimal-pad"
               value={newMaterial.precio_unitario}
+              returnKeyType="done"
               onChangeText={(value) =>
                 setNewMaterial((current) => ({
                   ...current,

@@ -103,6 +103,7 @@ export default function AltaEmpleadoScreen() {
           <TextInput
             placeholder="Nombre completo"
             value={form.nombre}
+            returnKeyType="done"
             onChangeText={(v) => updateField("nombre", v)}
             style={[styles.input, fieldErrors.nombre && styles.inputError]}
           />
@@ -114,6 +115,7 @@ export default function AltaEmpleadoScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             value={form.email}
+            returnKeyType="done"
             onChangeText={(v) => updateField("email", v)}
             style={[styles.input, fieldErrors.email && styles.inputError]}
           />
@@ -123,6 +125,7 @@ export default function AltaEmpleadoScreen() {
             placeholder="Contraseña temporal (min. 6 car.)"
             secureTextEntry
             value={form.contrasena}
+            returnKeyType="done"
             onChangeText={(v) => updateField("contrasena", v)}
             style={[styles.input, fieldErrors.contrasena && styles.inputError]}
           />

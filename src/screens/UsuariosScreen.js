@@ -254,6 +254,7 @@ export default function UsuariosScreen() {
           <TextInput
             style={styles.input}
             value={editForm.nombre}
+            returnKeyType="done"
             onChangeText={(v) =>
               setEditForm((c) => ({ ...c, nombre: v }))
             }
@@ -262,6 +263,7 @@ export default function UsuariosScreen() {
           <TextInput
             style={styles.input}
             value={editForm.email}
+            returnKeyType="done"
             onChangeText={(v) =>
               setEditForm((c) => ({ ...c, email: v }))
             }
@@ -296,6 +298,7 @@ export default function UsuariosScreen() {
           <TextInput
             style={styles.input}
             value={editForm.especialidad}
+            returnKeyType="done"
             onChangeText={(v) =>
               setEditForm((c) => ({ ...c, especialidad: v }))
             }
@@ -304,6 +307,7 @@ export default function UsuariosScreen() {
           <TextInput
             style={styles.input}
             value={editForm.telefono}
+            returnKeyType="done"
             onChangeText={(v) =>
               setEditForm((c) => ({ ...c, telefono: v }))
             }
@@ -484,6 +488,7 @@ export default function UsuariosScreen() {
             <TextInput
               placeholder="Nombre completo"
               value={newEmployee.nombre}
+              returnKeyType="done"
               onChangeText={(v) => updateEmployeeField("nombre", v)}
               style={[
                 styles.input,
@@ -498,6 +503,7 @@ export default function UsuariosScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               value={newEmployee.email}
+              returnKeyType="done"
               onChangeText={(v) => updateEmployeeField("email", v)}
               style={[
                 styles.input,
@@ -510,6 +516,7 @@ export default function UsuariosScreen() {
               placeholder="Contraseña temporal (min. 8 car.)"
               secureTextEntry
               value={newEmployee.contrasena}
+              returnKeyType="done"
               onChangeText={(v) => updateEmployeeField("contrasena", v)}
               style={[
                 styles.input,
@@ -522,6 +529,7 @@ export default function UsuariosScreen() {
               placeholder="Telefono"
               keyboardType="phone-pad"
               value={newEmployee.telefono}
+              returnKeyType="done"
               onChangeText={(v) => updateEmployeeField("telefono", v)}
               style={[
                 styles.input,
@@ -533,6 +541,7 @@ export default function UsuariosScreen() {
             <TextInput
               placeholder="Direccion"
               value={newEmployee.direccion}
+              returnKeyType="done"
               onChangeText={(v) => updateEmployeeField("direccion", v)}
               style={[
                 styles.input,
@@ -544,6 +553,7 @@ export default function UsuariosScreen() {
             <TextInput
               placeholder="Especialidad (ej: Electricista)"
               value={newEmployee.especialidad}
+              returnKeyType="done"
               onChangeText={(v) => updateEmployeeField("especialidad", v)}
               style={[
                 styles.input,
@@ -556,6 +566,7 @@ export default function UsuariosScreen() {
               placeholder="Anos de experiencia"
               keyboardType="numeric"
               value={newEmployee.anos_experiencia}
+              returnKeyType="done"
               onChangeText={(v) => updateEmployeeField("anos_experiencia", v.replace(/[^0-9]/g, ""))}
               style={[
                 styles.input,

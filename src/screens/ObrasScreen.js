@@ -544,6 +544,7 @@ export default function ObrasScreen() {
             style={styles.input}
             placeholder="Nombre de la obra"
             value={projectForm.nombre}
+            returnKeyType="done"
             onChangeText={(value) => updateProjectField("nombre", value)}
           />
           <TextInput
@@ -678,6 +679,7 @@ export default function ObrasScreen() {
             style={styles.input}
             placeholder="Nombre de la tarea"
             value={taskForm.nombre}
+            returnKeyType="done"
             onChangeText={(value) => updateTaskField("nombre", value)}
           />
           <TextInput

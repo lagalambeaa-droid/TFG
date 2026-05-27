@@ -390,6 +390,7 @@ export default function FinanzasScreen() {
                   style={styles.input}
                   placeholder="Concepto"
                   value={item.concepto}
+                  returnKeyType="done"
                   onChangeText={(value) => updateItem(index, "concepto", value)}
                 />
                 <View style={styles.itemRow}>
@@ -398,6 +399,7 @@ export default function FinanzasScreen() {
                     placeholder="Cantidad"
                     keyboardType="numeric"
                     value={item.cantidad}
+                    returnKeyType="done"
                     onChangeText={(value) =>
                       updateItem(index, "cantidad", sanitizeIntegerInput(value))
                     }
@@ -407,6 +409,7 @@ export default function FinanzasScreen() {
                     placeholder="Precio unit."
                     keyboardType="decimal-pad"
                     value={item.precio_unitario}
+                    returnKeyType="done"
                     onChangeText={(value) =>
                       updateItem(
                         index,

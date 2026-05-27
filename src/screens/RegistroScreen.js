@@ -121,6 +121,7 @@ export default function RegistroScreen({ navigation }) {
           <TextInput
             placeholder="Nombre completo"
             value={form.nombre}
+            returnKeyType="done"
             onChangeText={(value) => updateField("nombre", value)}
             style={[styles.input, fieldErrors.nombre && styles.inputError]}
           />
@@ -132,6 +133,7 @@ export default function RegistroScreen({ navigation }) {
             autoCapitalize="none"
             autoCorrect={false}
             value={form.email}
+            returnKeyType="done"
             onChangeText={(value) => updateField("email", value)}
             style={[styles.input, fieldErrors.email && styles.inputError]}
           />
@@ -141,6 +143,7 @@ export default function RegistroScreen({ navigation }) {
             placeholder="Contraseña (min. 8 car., mayús., núm., especial)"
             secureTextEntry
             value={form.contrasena}
+            returnKeyType="done"
             onChangeText={(value) => updateField("contrasena", value)}
             style={[styles.input, fieldErrors.contrasena && styles.inputError]}
           />
@@ -150,12 +153,14 @@ export default function RegistroScreen({ navigation }) {
             placeholder="Telefono"
             keyboardType="phone-pad"
             value={form.telefono}
+            returnKeyType="done"
             onChangeText={(value) => updateField("telefono", value)}
             style={styles.input}
           />
           <TextInput
             placeholder="Direccion"
             value={form.direccion}
+            returnKeyType="done"
             onChangeText={(value) => updateField("direccion", value)}
             style={styles.input}
           />

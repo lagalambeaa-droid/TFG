@@ -378,6 +378,36 @@ const cambiarContrasena = async (req, res) => {
   }
 };
 
+const resetPasswordByCapataz = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { contrasena_nueva } = req.body;
+
+    const pwdError = validateStrongPassword(contrasena_nueva);
+    if (pwdError) {
+      return res.status(400).json({ message: pwdError });
+    }
+
+    const usuario = await Usuario.findById(id);
+    if (!usuario) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    usuario.contrasena = await bcrypt.hash(contrasena_nueva, 10);
+    usuario.debe_cambiar_contrasena = true;
+    await usuario.save();
+
+    return res.status(200).json({
+      message: "Contrasena restablecida correctamente.",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error al restablecer la contrasena",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   registro,
   login,
@@ -387,4 +417,5 @@ module.exports = {
   registroEmpleado,
   actualizarPerfil,
   cambiarContrasena,
+  resetPasswordByCapataz,
 };
