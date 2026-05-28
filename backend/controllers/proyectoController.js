@@ -1,6 +1,10 @@
 const Proyecto = require("../models/Proyecto");
 const Tarea = require("../models/Tarea");
 const Usuario = require("../models/Usuario");
+const {
+  getProjectTaskProgress,
+  syncProjectStatusByTasks,
+} = require("../services/projectStatusService");
 
 const validarRangoFechas = (data = {}) => {
   const { fecha_inicio, fecha_fin_estimada } = data;
@@ -37,24 +41,22 @@ const listarProyectos = async (req, res) => {
 
     const enrichedProjects = await Promise.all(
       proyectos.map(async (proyecto) => {
+        await syncProjectStatusByTasks(proyecto._id);
+        const syncedProject = await Proyecto.findById(proyecto._id)
+          .populate("cliente capataz", "nombre email rol telefono");
         const tareas = await Tarea.find({ proyecto: proyecto._id })
           .populate("empleado", "nombre email")
           .sort({ _id: -1 });
 
-        const totalTareas = tareas.length;
-        const tareasCompletadas = tareas.filter(
-          (tarea) => tarea.estado === "Completada"
-        ).length;
+        const { totalTasks, completedTasks, progress } =
+          await getProjectTaskProgress(proyecto._id);
 
         return {
-          ...proyecto.toObject(),
+          ...syncedProject.toObject(),
           tareas,
-          total_tareas: totalTareas,
-          tareas_completadas: tareasCompletadas,
-          porcentaje_avance:
-            totalTareas === 0
-              ? 0
-              : Math.round((tareasCompletadas / totalTareas) * 100),
+          total_tareas: totalTasks,
+          tareas_completadas: completedTasks,
+          porcentaje_avance: progress,
         };
       })
     );
@@ -173,23 +175,16 @@ const calcularAvanceObra = async (req, res) => {
       return res.status(404).json({ message: "Proyecto no encontrado" });
     }
 
-    const totalTareas = await Tarea.countDocuments({ proyecto: id });
-    const tareasCompletadas = await Tarea.countDocuments({
-      proyecto: id,
-      estado: "Completada",
-    });
-
-    const porcentaje =
-      totalTareas === 0
-        ? 0
-        : Math.round((tareasCompletadas / totalTareas) * 100);
+    const { proyecto: syncedProject, totalTasks, completedTasks, progress } =
+      await syncProjectStatusByTasks(id);
 
     return res.status(200).json({
-      proyecto: proyecto._id,
-      total_tareas: totalTareas,
-      tareas_completadas: tareasCompletadas,
-      porcentaje_avance: porcentaje,
-      avance: `${porcentaje}%`,
+      proyecto: syncedProject._id,
+      estado: syncedProject.estado,
+      total_tareas: totalTasks,
+      tareas_completadas: completedTasks,
+      porcentaje_avance: progress,
+      avance: `${progress}%`,
     });
   } catch (error) {
     return res.status(500).json({
@@ -208,6 +203,10 @@ const obtenerMiProyecto = async (req, res) => {
       return res.status(404).json({ message: "Proyecto no encontrado" });
     }
 
+    await syncProjectStatusByTasks(proyecto._id);
+    const syncedProject = await Proyecto.findById(proyecto._id)
+      .populate("cliente capataz", "nombre email rol telefono");
+
     const ultimasTareasCompletadas = await Tarea.find({
       proyecto: proyecto._id,
       estado: "Completada",
@@ -218,7 +217,7 @@ const obtenerMiProyecto = async (req, res) => {
       .select("nombre estado foto_avance empleado");
 
     return res.status(200).json({
-      proyecto,
+      proyecto: syncedProject,
       ultimas_tareas_completadas: ultimasTareasCompletadas,
     });
   } catch (error) {

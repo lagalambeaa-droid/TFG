@@ -306,7 +306,8 @@ export default function MisTareasScreen() {
       <View style={styles.card}>
         <Text style={styles.taskName}>{item.nombre}</Text>
         <Text style={styles.taskMeta}>
-          {item.proyecto?.nombre || "Proyecto"} | Estado actual: {item.estado}
+          {item.proyecto?.nombre || "Proyecto"} | Obra:{" "}
+          {item.proyecto?.estado || "Sin estado"} | Tarea: {item.estado}
         </Text>
         {item.descripcion ? (
           <Text style={styles.taskDescription}>{item.descripcion}</Text>
@@ -374,7 +375,8 @@ export default function MisTareasScreen() {
           </View>
         </View>
         <Text style={styles.taskMeta}>
-          {item.proyecto?.nombre || "Proyecto"}
+          {item.proyecto?.nombre || "Proyecto"} | Obra:{" "}
+          {item.proyecto?.estado || "Sin estado"}
         </Text>
         {item.descripcion ? (
           <Text style={styles.taskDescription}>{item.descripcion}</Text>

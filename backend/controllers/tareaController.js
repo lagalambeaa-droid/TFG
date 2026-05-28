@@ -8,6 +8,7 @@ const {
   uploadTaskImage,
 } = require("../services/cloudinaryService");
 const { notifyUser } = require("../services/notificationService");
+const { syncProjectStatusByTasks } = require("../services/projectStatusService");
 
 const listarTareas = async (req, res) => {
   try {
@@ -21,6 +22,9 @@ const listarTareas = async (req, res) => {
       const proyectos = await Proyecto.find({ capataz: req.usuario.id }).select("_id");
       filtro.proyecto = { $in: proyectos.map((proyecto) => proyecto._id) };
     }
+
+    const taskProjectIds = await Tarea.distinct("proyecto", filtro);
+    await Promise.all(taskProjectIds.map(syncProjectStatusByTasks));
 
     const tareas = await Tarea.find(filtro)
       .populate("proyecto", "nombre estado")
@@ -64,6 +68,8 @@ const crearTarea = async (req, res) => {
       descripcion: req.body.descripcion,
       estado: req.body.estado || "Pendiente",
     });
+
+    await syncProjectStatusByTasks(proyectoId);
 
     const populated = await Tarea.findById(tarea._id)
       .populate("proyecto", "nombre estado")
@@ -146,6 +152,7 @@ const actualizarEstadoTarea = async (req, res) => {
     }
 
     await tarea.save();
+    await syncProjectStatusByTasks(tarea.proyecto._id || tarea.proyecto);
 
     const updated = await Tarea.findById(tarea._id)
       .populate("proyecto", "nombre estado")
