@@ -96,11 +96,8 @@ export default function MisTareasScreen() {
   useFocusEffect(
     useCallback(() => {
       loadTasks();
-      const refreshInterval = setInterval(() => {
-        loadTasks({ showLoader: false });
-      }, 10000);
 
-      return () => clearInterval(refreshInterval);
+      return undefined;
     }, [loadTasks])
   );
 

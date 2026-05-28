@@ -148,9 +148,6 @@ export default function MaterialesScreen() {
   useFocusEffect(
     useCallback(() => {
       loadMaterials();
-      const refreshInterval = setInterval(() => {
-        loadMaterials({ showLoader: false });
-      }, 10000);
 
       const unsubscribe = NetInfo.addEventListener((state) => {
         if (state.isConnected) {
@@ -159,7 +156,6 @@ export default function MaterialesScreen() {
       });
 
       return () => {
-        clearInterval(refreshInterval);
         unsubscribe();
       };
     }, [loadMaterials])
