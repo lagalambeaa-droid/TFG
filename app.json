@@ -4,15 +4,16 @@
     "slug": "construct-plus",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash-logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "icon": "./assets/app-icon.png"
     },
     "android": {
       "adaptiveIcon": {
@@ -30,7 +31,8 @@
       [
         "expo-notifications",
         {
-          "color": "#1A7FC1"
+          "color": "#1A7FC1",
+          "defaultChannel": "default"
         }
       ]
     ],
@@ -39,6 +41,6 @@
         "projectId": "a4441ae7-2aa0-4e21-8a83-6f488f0e93ba"
       }
     },
-    "owner": "ivanezquerrooo"
+    "owner": "damdual"
   }
 }

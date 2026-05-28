@@ -3,6 +3,7 @@ const {
   listarMateriales,
   crearMaterial,
   reponerStockMaterial,
+  asignarMaterialATarea,
   registrarConsumoMaterial,
   listarConsumos,
 } = require("../controllers/materialController");
@@ -34,6 +35,12 @@ router.post(
   authMiddleware,
   roleMiddleware(["capataz"]),
   reponerStockMaterial
+);
+router.post(
+  "/:id/asignacion",
+  authMiddleware,
+  roleMiddleware(["capataz"]),
+  asignarMaterialATarea
 );
 router.post(
   "/:id/consumo",

@@ -16,6 +16,7 @@ import {
 import NetInfo from "@react-native-community/netinfo";
 import { useFocusEffect } from "@react-navigation/native";
 import {
+  assignMaterialToTask,
   createMaterial,
   getMaterials,
   getOfflineConsumptions,
@@ -40,6 +41,7 @@ export default function MaterialesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [quantities, setQuantities] = useState({});
+  const [assignmentValues, setAssignmentValues] = useState({});
   const [restockValues, setRestockValues] = useState({});
   const [syncing, setSyncing] = useState(false);
   const [savingMaterial, setSavingMaterial] = useState(false);
@@ -56,6 +58,38 @@ export default function MaterialesScreen() {
   const criticalMaterials = useMemo(
     () => materials.filter((material) => material.stock_critico),
     [materials]
+  );
+
+  const assignableTasks = useMemo(
+    () => tasks.filter((task) => task.estado !== "Completada"),
+    [tasks]
+  );
+
+  const employeeAssignments = useMemo(
+    () =>
+      tasks.flatMap((task) =>
+        (task.materialesAsignados || [])
+          .filter((assignment) => {
+            const material = assignment.material;
+            const remaining =
+              Number(assignment.cantidadAsignada || 0) -
+              Number(assignment.cantidadConsumida || 0);
+            return material && remaining > 0 && task.estado !== "Completada";
+          })
+          .map((assignment) => ({
+            key: `${task._id}-${assignment.material._id}`,
+            taskId: task._id,
+            taskName: task.nombre,
+            projectName: task.proyecto?.nombre,
+            material: assignment.material,
+            cantidadAsignada: Number(assignment.cantidadAsignada || 0),
+            cantidadConsumida: Number(assignment.cantidadConsumida || 0),
+            restante:
+              Number(assignment.cantidadAsignada || 0) -
+              Number(assignment.cantidadConsumida || 0),
+          }))
+      ),
+    [tasks]
   );
 
   const loadMaterials = useCallback(async ({ showLoader = true } = {}) => {
@@ -79,9 +113,27 @@ export default function MaterialesScreen() {
           return acc;
         }, {})
       );
+      setAssignmentValues((current) =>
+        normalized.reduce((acc, material) => {
+          acc[material._id] = current[material._id] || "";
+          return acc;
+        }, {})
+      );
 
       const taskData = await getTasks();
-      setTasks(Array.isArray(taskData) ? taskData : []);
+      const normalizedTasks = Array.isArray(taskData) ? taskData : [];
+      setTasks(normalizedTasks);
+      setQuantities((current) =>
+        normalizedTasks.reduce((acc, task) => {
+          (task.materialesAsignados || []).forEach((assignment) => {
+            if (assignment.material?._id) {
+              const key = `${task._id}-${assignment.material._id}`;
+              acc[key] = current[key] || "";
+            }
+          });
+          return acc;
+        }, {})
+      );
     } catch {
       if (showLoader && materials.length === 0) {
         Alert.alert("Error", "No se pudieron cargar los materiales.");
@@ -165,18 +217,26 @@ export default function MaterialesScreen() {
     }
   };
 
-  const handleConfirmConsumption = async (material) => {
-    const cantidad = Number(quantities[material._id] || 0);
+  const handleConfirmConsumption = async (assignment) => {
+    const cantidad = Number(quantities[assignment.key] || 0);
 
     if (!cantidad || cantidad <= 0) {
       Alert.alert("Cantidad invalida", "Selecciona una cantidad mayor que cero.");
       return;
     }
 
+    if (cantidad > assignment.restante) {
+      Alert.alert(
+        "Cantidad invalida",
+        `No puedes consumir mas de lo asignado. Disponible: ${assignment.restante}.`
+      );
+      return;
+    }
+
     const payload = {
-      materialId: material._id,
+      materialId: assignment.material._id,
       cantidad,
-      tarea: selectedTasks[material._id] || undefined,
+      tarea: assignment.taskId,
     };
 
     const networkState = await NetInfo.fetch();
@@ -184,12 +244,12 @@ export default function MaterialesScreen() {
     if (networkState.isConnected) {
       try {
         const response = await postMaterialConsumption(payload);
-        updateLocalMaterial(material._id, response.material);
+        updateLocalMaterial(assignment.material._id, response.material);
         setQuantities((current) => ({
           ...current,
-          [material._id]: "",
+          [assignment.key]: "",
         }));
-        setSelectedTasks((current) => ({ ...current, [material._id]: null }));
+        await loadMaterials({ showLoader: false });
         Alert.alert("Consumo registrado", "El consumo se envio correctamente.");
       } catch (error) {
         Alert.alert(
@@ -205,10 +265,53 @@ export default function MaterialesScreen() {
     await saveOfflineConsumption(payload);
     setQuantities((current) => ({
       ...current,
-      [material._id]: "",
+      [assignment.key]: "",
     }));
-    setSelectedTasks((current) => ({ ...current, [material._id]: null }));
     Alert.alert("Sin conexion", "Guardado offline. Pendiente de sincronizar.");
+  };
+
+  const handleAssignToTask = async (material) => {
+    const cantidad = Number(assignmentValues[material._id] || 0);
+    const tarea = selectedTasks[material._id];
+
+    if (!tarea) {
+      Alert.alert("Tarea obligatoria", "Selecciona la tarea que recibira el material.");
+      return;
+    }
+
+    if (!cantidad || cantidad <= 0) {
+      Alert.alert("Cantidad invalida", "Indica una asignacion mayor que cero.");
+      return;
+    }
+
+    if (cantidad > material.cantidad) {
+      Alert.alert(
+        "Stock insuficiente",
+        `Solo hay ${material.cantidad} unidades disponibles.`
+      );
+      return;
+    }
+
+    try {
+      const response = await assignMaterialToTask({
+        materialId: material._id,
+        cantidad,
+        tarea,
+      });
+      updateLocalMaterial(material._id, response.material);
+      setAssignmentValues((current) => ({
+        ...current,
+        [material._id]: "",
+      }));
+      setSelectedTasks((current) => ({ ...current, [material._id]: null }));
+      await loadMaterials({ showLoader: false });
+      Alert.alert("Material asignado", "El stock se desconto y quedo vinculado a la tarea.");
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        error?.response?.data?.message || "No se pudo asignar el material."
+      );
+    }
   };
 
   const handleRestock = async (material) => {
@@ -300,14 +403,15 @@ export default function MaterialesScreen() {
         ) : null}
       </View>
 
+      {session.role === "capataz" ? (
       <View style={styles.actionBlock}>
-        <Text style={styles.actionLabel}>Consumir</Text>
-        {tasks.length > 0 ? (
+        <Text style={styles.actionLabel}>Asignar a tarea</Text>
+        {assignableTasks.length > 0 ? (
           <View style={styles.taskPickerRow}>
             <Text style={styles.taskPickerLabel}>Tarea:</Text>
             <FlatList
               horizontal
-              data={[{ _id: null, nombre: "Sin tarea" }, ...tasks]}
+              data={assignableTasks}
               keyExtractor={(t) => t._id || "none"}
               showsHorizontalScrollIndicator={false}
               renderItem={({ item: t }) => (
@@ -333,24 +437,29 @@ export default function MaterialesScreen() {
               )}
             />
           </View>
-        ) : null}
+        ) : (
+          <Text style={styles.helperText}>No hay tareas activas para asignar.</Text>
+        )}
         <View style={styles.quantityRow}>
           <TextInput
             style={styles.quantityInput}
             keyboardType="numeric"
             placeholder="0"
-            value={quantities[item._id] || ""}
+            value={assignmentValues[item._id] || ""}
             returnKeyType="done"
-            onChangeText={(value) => updateQuantity(item._id, value, setQuantities)}
+            onChangeText={(value) =>
+              updateQuantity(item._id, value, setAssignmentValues)
+            }
           />
           <TouchableOpacity
             style={styles.confirmButton}
-            onPress={() => handleConfirmConsumption(item)}
+            onPress={() => handleAssignToTask(item)}
           >
-            <Text style={styles.confirmButtonText}>Registrar</Text>
+            <Text style={styles.confirmButtonText}>Asignar</Text>
           </TouchableOpacity>
         </View>
       </View>
+      ) : null}
 
       {session.role === "capataz" ? (
         <View style={styles.actionBlock}>
@@ -375,6 +484,44 @@ export default function MaterialesScreen() {
           </View>
         </View>
       ) : null}
+    </View>
+  );
+
+  const renderAssignedMaterial = ({ item }) => (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <View>
+          <Text style={styles.materialName}>{item.material.concepto}</Text>
+          <Text style={styles.stockText}>
+            Tarea: {item.taskName}
+            {item.projectName ? ` | Proyecto: ${item.projectName}` : ""}
+          </Text>
+          <Text style={styles.stockText}>
+            Asignado: {item.cantidadAsignada} | Consumido:{" "}
+            {item.cantidadConsumida} | Disponible: {item.restante}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.actionBlock}>
+        <Text style={styles.actionLabel}>Consumo real</Text>
+        <View style={styles.quantityRow}>
+          <TextInput
+            style={styles.quantityInput}
+            keyboardType="numeric"
+            placeholder="0"
+            value={quantities[item.key] || ""}
+            returnKeyType="done"
+            onChangeText={(value) => updateQuantity(item.key, value, setQuantities)}
+          />
+          <TouchableOpacity
+            style={styles.confirmButton}
+            onPress={() => handleConfirmConsumption(item)}
+          >
+            <Text style={styles.confirmButtonText}>Registrar</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 
@@ -411,17 +558,21 @@ export default function MaterialesScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Materiales</Text>
         <Text style={styles.headerSubtitle}>
-          Controla stock, reposicion y alertas de materiales criticos.
+          {session.role === "capataz"
+            ? "Controla stock, reposicion y asignacion de materiales a tareas."
+            : "Registra el consumo real de los materiales asignados a tus tareas."}
         </Text>
         {syncing ? <Text style={styles.syncingText}>Sincronizando pendientes...</Text> : null}
       </View>
 
       <View style={styles.sectionTabs}>
-        {renderSectionButton("stock", "Stock", materials.length)}
-        {renderSectionButton("critical", "Alertas", criticalMaterials.length)}
         {session.role === "capataz"
-          ? renderSectionButton("new", "Nuevo material")
+          ? renderSectionButton("stock", "Stock", materials.length)
+          : renderSectionButton("stock", "Asignados", employeeAssignments.length)}
+        {session.role === "capataz"
+          ? renderSectionButton("critical", "Alertas", criticalMaterials.length)
           : null}
+        {session.role === "capataz" ? renderSectionButton("new", "Nuevo material") : null}
       </View>
 
       {activeSection === "new" && session.role === "capataz" ? (
@@ -501,13 +652,26 @@ export default function MaterialesScreen() {
         />
       ) : activeSection === "stock" ? (
         <FlatList
-          data={materials}
-          keyExtractor={(item) => item._id}
-          renderItem={renderMaterial}
+          data={session.role === "capataz" ? materials : employeeAssignments}
+          keyExtractor={(item) =>
+            session.role === "capataz" ? item._id : item.key
+          }
+          renderItem={
+            session.role === "capataz" ? renderMaterial : renderAssignedMaterial
+          }
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
           refreshing={refreshing}
           onRefresh={handleRefresh}
+          ListEmptyComponent={
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>
+                {session.role === "capataz"
+                  ? "No hay materiales registrados."
+                  : "No hay materiales asignados a tus tareas activas."}
+              </Text>
+            </View>
+          }
         />
       ) : null}
     </KeyboardAvoidingView>
@@ -666,6 +830,12 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     fontFamily: theme.typography.regular,
     marginBottom: 6,
+  },
+  helperText: {
+    color: "#64748B",
+    fontFamily: theme.typography.regular,
+    fontSize: 13,
+    marginBottom: 8,
   },
   taskChip: {
     borderRadius: 999,

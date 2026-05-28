@@ -12,7 +12,7 @@ import {
 } from "../services/notificationService";
 import theme from "../theme";
 
-const logo = require("../../assets/Logo.png");
+const logo = require("../../assets/splash-logo.png");
 
 export default function RootNavigator() {
   const { session } = useAuth();

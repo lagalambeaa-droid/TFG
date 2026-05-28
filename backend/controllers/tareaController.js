@@ -1,5 +1,6 @@
 const path = require("path");
 const Tarea = require("../models/Tarea");
+const Material = require("../models/Material");
 const Proyecto = require("../models/Proyecto");
 const Usuario = require("../models/Usuario");
 const {
@@ -24,6 +25,7 @@ const listarTareas = async (req, res) => {
     const tareas = await Tarea.find(filtro)
       .populate("proyecto", "nombre estado")
       .populate("empleado", "nombre email")
+      .populate("materialesAsignados.material", "concepto cantidad precio_unitario")
       .sort({ _id: -1 });
 
     return res.status(200).json(tareas);
@@ -65,7 +67,8 @@ const crearTarea = async (req, res) => {
 
     const populated = await Tarea.findById(tarea._id)
       .populate("proyecto", "nombre estado")
-      .populate("empleado", "nombre email");
+      .populate("empleado", "nombre email")
+      .populate("materialesAsignados.material", "concepto cantidad precio_unitario");
 
     notifyUser(
       empleadoId,
@@ -124,11 +127,30 @@ const actualizarEstadoTarea = async (req, res) => {
       }
     }
 
+    if (
+      estado === "Completada" &&
+      estadoAnterior !== "Completada" &&
+      !tarea.materialesReintegrados
+    ) {
+      for (const item of tarea.materialesAsignados) {
+        const sobrante = item.cantidadAsignada - item.cantidadConsumida;
+
+        if (sobrante > 0) {
+          await Material.findByIdAndUpdate(item.material, {
+            $inc: { cantidad: sobrante },
+          });
+        }
+      }
+
+      tarea.materialesReintegrados = true;
+    }
+
     await tarea.save();
 
     const updated = await Tarea.findById(tarea._id)
       .populate("proyecto", "nombre estado")
-      .populate("empleado", "nombre email");
+      .populate("empleado", "nombre email")
+      .populate("materialesAsignados.material", "concepto cantidad precio_unitario");
 
     const fullProject = await Proyecto.findById(tarea.proyecto._id || tarea.proyecto);
     if (fullProject) {

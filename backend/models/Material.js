@@ -17,10 +17,6 @@ const materialSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
-    processedRequestIds: {
-      type: [String],
-      default: [],
-    },
   },
   {
     versionKey: false,

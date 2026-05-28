@@ -15,6 +15,7 @@ async function sendPushNotification(expoPushToken, title, body, data = {}) {
   const message = {
     to: expoPushToken,
     sound: "default",
+    channelId: "default",
     title,
     body,
     data,

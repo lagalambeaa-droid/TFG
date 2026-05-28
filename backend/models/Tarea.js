@@ -31,6 +31,31 @@ const tareaSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    materialesAsignados: [
+      {
+        material: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Material",
+          required: true,
+        },
+        cantidadAsignada: {
+          type: Number,
+          required: true,
+          min: 0,
+          default: 0,
+        },
+        cantidadConsumida: {
+          type: Number,
+          required: true,
+          min: 0,
+          default: 0,
+        },
+      },
+    ],
+    materialesReintegrados: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     versionKey: false,

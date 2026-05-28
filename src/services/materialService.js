@@ -23,6 +23,15 @@ export const replenishMaterialStock = async ({ materialId, cantidad }) => {
   return response.data;
 };
 
+export const assignMaterialToTask = async ({ materialId, cantidad, tarea }) => {
+  const response = await api.post(`/materiales/${materialId}/asignacion`, {
+    cantidad,
+    tarea,
+  });
+
+  return response.data;
+};
+
 export const postMaterialConsumption = async ({
   materialId,
   cantidad,
